@@ -1,0 +1,28 @@
+<?php
+/**
+ * Set ordertracking link in my account.
+ */
+?>
+<?php
+$orderId = Mage::registry('current_shipping_info')->getOrderId();
+if(!$orderId){
+    $orderId = Mage::getModel('sales/order_shipment')->load(Mage::registry('current_shipping_info')->getShipId())->getOrderId();
+}
+$order = Mage::getModel('sales/order')->load($orderId);
+$arrayToReplace = array("$1", "$2", "$3");
+$locale = Mage::app()->getLocale()->getLocaleCode();
+$replaceArray = array($order->getIncrementId(),$locale,Mage::getStoreConfig('shipping/dpdclassic/userid'));
+$parcelID = str_replace('.pdf', '', $order->getDpdLabelPath());
+
+if(substr($parcelID, 0, 3) == "B2C" || substr($parcelID, 0, 3)){
+	$url = "https://tracking.dpd.de/status/$2/shipment/$1";
+}else {
+	$url = "https://tracking.dpd.de/status/$2/parcel/$1";
+}
+$parsedUrl = str_replace($arrayToReplace,$replaceArray,$url);
+?>
+<?php if(strpos(serialize($this->getTrackingInfo()), 'DPD' ) !== FALSE): ?>
+<div class="order-tracking">
+    <a style="position: absolute;top: <?php echo (Mage::helper('dpd')->isMageEnterprise() ? ' 85' : ' 65' )?>px" href="<?php echo $parsedUrl ?>" alt="ordertrackingUrl" target="_blank"><?php echo Mage::helper('dpd')->__('Track this order') ?></a>
+</div>
+<?php endif; ?>

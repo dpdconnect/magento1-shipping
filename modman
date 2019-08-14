@@ -1,0 +1,20 @@
+# Modman file
+src/app/code/community/DPD/Connect/                       app/code/community/DPD/Connect
+src/app/etc/modules/DPD_Connect.xml                       app/etc/modules/DPD_Connect.xml
+
+# app/design
+src/app/design/frontend/base/default/layout/dpd_connect.xml            app/design/frontend/base/default/layout/dpd_connect.xml
+src/app/design/frontend/base/default/template/dpd                      app/design/frontend/base/default/template/dpd
+src/app/design/adminhtml/default/default/layout/dpd/connect.xml        app/design/adminhtml/default/default/layout/dpd/connect.xml
+src/app/design/adminhtml/default/default/template/dpd                  app/design/adminhtml/default/default/template/dpd
+
+# lib
+src/lib/DpdConnect                                                     lib/DpdConnect/
+
+# js
+src/js/dpd                                                             js/dpd
+
+# skin
+src/skin/frontend/base/default/css/dpd                                 skin/frontend/base/default/css/dpd
+src/skin/frontend/base/default/images/dpd                              skin/frontend/base/default/images/dpd
+src/skin/adminhtml/default/default/dpd                                 skin/adminhtml/default/default/dpd
