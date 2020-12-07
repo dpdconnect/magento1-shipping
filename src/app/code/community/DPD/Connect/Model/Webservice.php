@@ -190,7 +190,7 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
      * @param $latitude
      * @return mixed
      */
-    public function getParcelShops($longitude, $latitude)
+    public function getParcelShops($longitude, $latitude, $countryCode = 'BE')
     {
         $apiBuilder = $this->_apiBuilder();
 
@@ -198,7 +198,8 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             'longitude'                 => $longitude,
             'latitude'                  => $latitude,
             'limit'                     => 10,
-            'countryIso'                => 'nl',
+            /* KIJS 'countryIso'                => 'be', KIJS*/
+			'countryIso'                => $countryCode,
             'consigneePickupAllowed'    => 'true'
         );
 
@@ -296,7 +297,7 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             $lines[] = [
                 'description'           => $product->getName(),
                 'harmonizedSystemCode'  => (!empty($product->getHsCode()) ? substr($product->getHsCode(), 0, 8) : (!empty($this->_getHsCodeDefault()) ? substr($this->_getHsCodeDefault(), 0, 8)     : "")),
-                'originCountry'         => (isset($item['item_origin_country']) ? $item['item_origin_country'] : "NL"),
+                'originCountry'         => (isset($item['item_origin_country']) ? $item['item_origin_country'] : "BE"),
                 'quantity'              => (int) $item->getQtyOrdered(),
                 'grossWeight'           => (int) round($item->getWeight()),
                 'totalAmount'           => (float) 10.00,

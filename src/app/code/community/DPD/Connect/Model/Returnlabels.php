@@ -69,7 +69,9 @@ class DPD_Connect_Model_Returnlabels extends Mage_Core_Model_Abstract
             $returnLabelObject
                 ->setLabelNumber($parcelNumber)
                 ->setLabelPdfUrl($labelResponse['shipmentIdentifier'] . "-" . $parcelNumber . ".pdf")
-                ->setLabelInstructionsUrl($labelResponse['shipmentIdentifier'] . "-" . $parcelNumber .  "-instructions.pdf")
+                /*kijs*/
+				->setLabelInstructionsUrl($parcelNumber .  "-instructions.pdf")
+				/*kijs*/
                 ->setOrderId($orderId)
                 ->save();
 
@@ -184,6 +186,6 @@ class DPD_Connect_Model_Returnlabels extends Mage_Core_Model_Abstract
         }
         $page->drawText(implode(' ', str_split($returnlabel->getLabelNumber(), 4)), '321', '215');
         $order = Mage::getResourceModel('sales/order_collection')->addAttributeToSelect('increment_id')->addAttributeToFilter('entity_id', array('eq' => $orderId))->getFirstItem();
-        Mage::helper('dpd')->generatePdfAndSave($pdf->render(), 'returnlabel', $order->getIncrementId() . '-' . $returnlabel->getLabelNumber() . "-instructions");
+        Mage::helper('dpd')->generatePdfAndSave($pdf->render(), 'returnlabel', /* kijs $order->getIncrementId() . '-' . kijs */$returnlabel->getLabelNumber() . "-instructions");
     }
 }
