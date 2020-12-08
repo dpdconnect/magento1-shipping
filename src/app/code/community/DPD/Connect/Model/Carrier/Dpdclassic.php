@@ -154,13 +154,13 @@ class DPD_Connect_Model_Carrier_Dpdclassic extends Mage_Shipping_Model_Carrier_A
 	    if(substr($tracking_numberExploded[1], 0, 3) == "MPS" || substr($tracking_numberExploded[1], 0, 3) == "B2C"){
 		    $tracking_status->addData(
 			    array(
-				    'status' => '<a target="_blank" href="' . "https://tracking.dpd.de/status/".$locale."/shipment/" . $tracking_numberExploded[1]. '">' . Mage::helper('dpd')->__('Track this shipment') . '</a>'
+				    'status' => '<a target="_blank" href="' . "https://tracking.dpd.de/status/".$locale."/shipment/" . /*$tracking_numberExploded[1]*/ $tracking_number . '">' . Mage::helper('dpd')->__('Track this shipment') . '</a>'
 			    )
 		    );
 	    }else{
 		    $tracking_status->addData(
 			    array(
-				    'status' => '<a target="_blank" href="' . "https://tracking.dpd.de/status/".$locale."/parcel/" . $tracking_numberExploded[1]. '">' . Mage::helper('dpd')->__('Track this shipment') . '</a>'
+				    'status' => '<a target="_blank" href="' . "https://tracking.dpd.de/status/".$locale."/parcel/" . /*$tracking_numberExploded[1]*/ $tracking_number . '">' . Mage::helper('dpd')->__('Track this shipment') . '</a>'
 			    )
 		    );
 	    }
