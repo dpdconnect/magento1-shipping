@@ -144,13 +144,19 @@ class DPD_Connect_Model_Carrier_Dpdclassic extends Mage_Shipping_Model_Carrier_A
      */
     public function getTracking($tracking_number)
     {
-        $tracking_numberExploded = explode('-', $tracking_number);
+      $tracking_numberExploded = explode('-', $tracking_number);
 	    $tracking_result = Mage::getModel('shipping/tracking_result');
 	    $tracking_status = Mage::getModel('shipping/tracking_result_status');
 	    $locale = Mage::app()->getLocale()->getLocaleCode();
 	    $tracking_status->setCarrier($this->_code);
 	    $tracking_status->setCarrierTitle($this->getConfigData('title'));
 	    $tracking_status->setTracking($tracking_number);
+      /*KIJS CHECK IF ARRAY */
+      if( is_array($tracking_number))
+      {
+        $tracking_number = $tracking_numberExploded[1];
+      }
+      /*KIJS CHECK IF ARRAY */
 	    if(substr($tracking_numberExploded[1], 0, 3) == "MPS" || substr($tracking_numberExploded[1], 0, 3) == "B2C"){
 		    $tracking_status->addData(
 			    array(
