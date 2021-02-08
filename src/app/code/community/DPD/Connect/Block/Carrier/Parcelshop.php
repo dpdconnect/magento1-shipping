@@ -48,8 +48,9 @@ class DPD_Connect_Block_Carrier_Parcelshop extends Mage_Core_Block_Template
     public function getParcelShops()
     {
         $coordinates = explode(',', Mage::Helper('dpd')->getGoogleMapsCenter());
-
-        $parcelshops = Mage::getSingleton('dpd/webservice')->getParcelShops($coordinates[1], $coordinates[0]);
+        $countryCodeISO = $this->getQuote()->getShippingAddress()["country_id"];
+       
+        $parcelshops = Mage::getSingleton('dpd/webservice')->getParcelShops($coordinates[1], $coordinates[0],$countryCodeISO);
 
         return $parcelshops;
     }
