@@ -10,7 +10,7 @@
 .parcelshopwrapper .extrainfo {cursor:pointer;padding-top: 2px;}
 .parcelshopwrapper .dpdclear{clear:both;position:relative;min-height:5px;min-width:5px;}
 .parcelshopwrapper .extrainfocontent{margin-right:20px; clear:left;}
-.parcelshopwrapper .extrainfowrapper{position: absolute; height:auto; padding: 10px; background-color: white; border: 1px solid black; top: -10px;margin-left:20px;}
+.parcelshopwrapper .extrainfowrapper{position: absolute; height:auto; padding: 10px; background-color: white; border: 1px solid black; top: -10px;margin-left:20px; z-index:2}
 .parcelshopwrapper .extrainfowrapper .day{font-weight:bold;}
 .parcelshopwrapper .parcelshoplogo{margin-right:10px;width:100px; height:100px;}
 .parcelshopwrapper .parcelshoplogo.bubble{margin-right:5px;width:95px; height:95px;}
@@ -30,6 +30,7 @@
 .onestepcheckout-shipping-method-block .parcelshopwrapper ul li{padding:0px;}
 .onestepcheckout-shipping-method-block .parcelshopwrapper ul {padding-top:5px; padding-bottom:5px;}
 .onestepcheckout-shipping-method-block .parcelshopwrapper ul li.dpdinfo{font-weight:bold;}
+.dpd-ajax-windowindex{overflow: hidden}
 
 @media (min-width: 980px) {
     .parcelshopwrapper #map_canvas {display:block;width:calc(100% - 230px);}

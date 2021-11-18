@@ -10,54 +10,130 @@ DPD.Connect = Class.create({
             this.container = innerDoc.getElementById('parcelshop');
         }
         else {
-            this.container = document.getElementById('checkout-shipping-method-load');
+            this.container = this.getDefaultContainer();
+        }
+
+        var shippingMethod = jQuery('[name="shipping_method"]:checked');
+
+        if(shippingMethod.val() !== 'dpdparcelshops_dpdparcelshops' && container !== "DPD_window_content") {
+            this.hideParcelshops();
         }
 
         this.config = config;
+
         this.showParcelsLinkClick = this.displayParcelsInline.bind(this);
-        this.saveParcelShopClick = this.saveParcelShop.bind(this);
         this.invalidateParcelLinkClick = this.invalidateParcel.bind(this);
+        this.toggleExtraInfo = this.toggleExtraInfo.bind(this);
+        this.showExtraInfo = this.showExtraInfo.bind(this);
+        this.hideExtraInfo = this.hideExtraInfo.bind(this);
         this.saveShipping = this.updateProgressBlock.bind(this);
-        this.showExtraInfoHover = this.showExtraInfo.bind(this);
-        if (this.container.down('#map_canvas')) {
-            this.initGmaps();
-        }
-        if (this.container.down('.parcelshoplogo')) {
-            this.container.down('#s_method_dpdparcelshops_dpdparcelshops').checked = true;
-            this.setParcelshopImage();
-        }
+
         this.bindEvents();
+
+        if(!window.jwtToken && !window.parent.jwtToken) {
+            var options = {
+                method: 'GET',
+                url: this.config.jwtUrl
+            };
+
+            jQuery.ajax(options).done(function (json) {
+                var data = JSON.parse(json);
+
+                window.jwtToken = data.token;
+
+                this.hideInitialLoader();
+
+                this.loadElements(container);
+            }.bind(this));
+        } else {
+            this.hideInitialLoader();
+            this.loadElements(container);
+        }
+    },
+    hideInitialLoader: function () {
+        jQuery('.initial-loader').hide();
+        jQuery('#showparcels').show();
+    },
+    loadElements: function (container) {
+        if (this.config.dpdSelected && !this.container.down('.parcelshop-selected') && container !== "DPD_window_content") {
+            var openingHoursJson = sessionStorage.getItem('parcelshop');
+
+            if(openingHoursJson) {
+                this.saveParcelShop(JSON.parse(openingHoursJson));
+                return;
+            }
+        }
+
+        var shippingMethod = jQuery('[name="shipping_method"]:checked');
+
+        if (
+            (
+                shippingMethod.val() === 'dpdparcelshops_dpdparcelshops' &&
+                this.container.down('#dpd-connect-map-container')
+            ) ||
+            container === "DPD_window_content"
+        ) {
+            this.showParcelShops();
+            this.showMap();
+        }
     },
     bindEvents: function () {
+        jQuery('[name="shipping_method"]').change(function(event){
+            if(
+                event.target.value === 'dpdparcelshops_dpdparcelshops'
+            ) {
+                jQuery('#dpd_parcelshop_container').show();
+                this.showParcelShops();
+
+                if(this.container.down('#dpd-connect-map-container')) {
+                    this.showMap();
+                }
+            } else {
+                this.hideParcelshops();
+            }
+        }.bind(this));
+
+        if(window.top === window && this.config.gmapsDisplay) {
+            // Attach the event listener for communication with the iframe
+            window.onmessage = (event) => {
+                if (!event.data) {
+                    return;
+                }
+
+                switch(event.data.action) {
+                    case 'saveParcelshop':
+                        this.saveParcelShop(event.data.data);
+                        break;
+                }
+            }
+        }
+
         this.showParcelsLink = this.container.down('#showparcels');
         if (this.showParcelsLink) {
             this.showParcelsLink.observe('click', this.showParcelsLinkClick);
         }
+
         this.shippingRadioButtons = $('checkout-shipping-method-load');
         if (this.shippingRadioButtons) {
             this.shippingRadioButtons.observe('change', this.saveShipping);
         }
+
         this.showInfo = this.container.down('.extrainfo');
         if (this.showInfo) {
-            this.showInfo.observe('click', this.showExtraInfoHover);
+            this.showInfo.observe('click', this.toggleExtraInfo);
+            this.showInfo.observe('mouseover', this.showExtraInfo);
+            this.showInfo.observe('mouseout', this.hideExtraInfo);
+
+            document.observe('click', function (event) {
+                if(!event.target.classList.contains('extrainfo')) {
+                    this.hideExtraInfo(event);
+                }
+            }.bind(this));
         }
-        this.parcelShopLink = $$('.parcelshoplink');
-        var parcelShopClick = this.saveParcelShopClick;
-        if (this.parcelShopLink) {
-            this.parcelShopLink.each(function (element) {
-                element.observe('click', parcelShopClick);
-            });
-        }
+
         this.invalidateParcelsLink = this.container.down('.invalidateParcel');
         if (this.invalidateParcelsLink) {
             this.invalidateParcelsLink.observe('click', this.invalidateParcelLinkClick);
-        }
-        this.closeGoogleMapsLink = this.container.down('.dpd_close_map');
-        if (this.closeGoogleMapsLink) {
-            this.closeGoogleMapsLink.observe('click', function (event) {
-                event.preventDefault();
-                shipping.save();
-            });
         }
     },
     displayParcelsInline: function () {
@@ -66,132 +142,90 @@ DPD.Connect = Class.create({
         if (this.config.gmapsDisplay && !dialog) {
             showDPDWindow(this.config.windowParcelUrl + "?windowed=true",
                 'iframe',
-                (parseInt(this.config.gmapsWidth.replace("px", "")) + 40), (parseInt(this.config.gmapsHeight.replace("px", "")) + 40),
+                (parseInt(this.config.gmapsWidth.replace("px", ""))), (parseInt(this.config.gmapsHeight.replace("px", ""))),
                 this.config
             );
         }
         else {
             this.parcelselectLink = this.container.down('#showparcels');
             if (this.parcelselectLink) {
-                var loaderurl = this.config.loaderimage;
-                var reloadurl = this.config.ParcelUrl;
                 this.parcelselectLink.replace('<div class="dpdloaderwrapper"><span class="dpdloader"></span>' + this.config.loadingmessage + '</div>' +
                     '<input type="hidden" class="DPD-confirmed" value="0"/>');
-                new parent.Ajax.Updater({success: 'dpd'}, reloadurl, {
+
+                var reloadurl = this.config.invalidateParcelUrl;
+
+                new parent.Ajax.Updater({success: this.container.down('#dpd')}, reloadurl, {
                     type: "GET",
                     asynchronous: true,
-                    evalScripts: true,
-                    onComplete: function () {
-                        this.initGmaps();
-                    }
+                    evalScripts: true
                 })
             }
         }
-    }, initGmaps: function () {
-        this.container = document.getElementById('parcelshop');
-        console.log(this.container);
+    },
+    showMap: function() {
+        DPDConnect.onParcelshopSelected = this.saveParcelShop.bind(this);
 
-        //
-        //
-        let propLatLng = {lat: this.config.gmapsCenterlat, lng: this.config.gmapsCenterlng};
-        this.mapcanvas = document.getElementById("map_canvas");
-        this.shops = document.getElementsByClassName('shops');
-        this.wrapper = document.getElementById("parcelshop");
-
-        var padding = 0;
-        if (this.container.id === "parcelshop") {
-            this.wrapper = this.container;
+        if (this.config.gmapsDpdParcelShopUseDpdKey) {
+            DPDConnect.show(window.jwtToken || window.parent.jwtToken, this.config.shippingaddress, this.config.localCode);
+        } else if(!this.config.gmapsDpdParcelShopGoogleKey) {
+            console.error('No gmaps api key provided');
+        } else {
+            DPDConnect.show(window.jwtToken || window.parent.jwtToken, this.config.shippingaddress, this.config.localCode, this.config.gmapsDpdParcelShopGoogleKey);
         }
-        this.wrapper.style.height = 400; //this.config.gmapsHeight;
-        this.wrapper.style.width = 600; //this.config.gmapsWidth;
-        this.map_options = {
-            mapTypeId: 'terrain',
-            center: propLatLng,
-            zoom: 17,
-        };
-        let map = new google.maps.Map(this.mapcanvas, this.map_options);
-        let geocoder = new google.maps.Geocoder();
-        var configForMarkers = this.config;
+    },
+    showParcelShops: function () {
+        jQuery('#parcelshop').show();
+    },
+    hideParcelshops: function () {
+        jQuery('#parcelshop').hide();
+    },
+    hideMap: function () {
+        jQuery('#dpd-connect-map-container').hide();
+    },
+    saveParcelShopFromIframe: function (evt) {
+        window.top.postMessage({action: 'saveParcelshop', data: evt}, '*');
+    },
+    saveParcelShop: function (evt) {
+        this.hideMap();
 
-        var marker_image = new google.maps.MarkerImage(configForMarkers.gmapsIcon, new google.maps.Size(57, 62), new google.maps.Point(0, 0), new google.maps.Point(0, 31));
-        var shadow = new google.maps.MarkerImage(configForMarkers.gmapsIconShadow, new google.maps.Size(85, 55), new google.maps.Point(0, 0), new google.maps.Point(0, 55));
-        var customImage = configForMarkers.gmapsCustomIcon;
-        var infowindow = new google.maps.InfoWindow();
-        window.markers = new Array();
-        var markerBounds = new google.maps.LatLngBounds();
-        $H(configForMarkers).each(function (pair) {
-            if (pair.key.indexOf("shop") !== -1) {
-                var content = pair.value.gmapsMarkerContent;
+        // Save the openinghours to sessionStorage
+        sessionStorage.setItem('parcelshop', JSON.stringify(evt));
 
-                var marker = new google.maps.Marker({
-                    map: map,
-                    position: new google.maps.LatLng(pair.value.gmapsCenterlat, pair.value.gmapsCenterlng),
-                    icon: marker_image,
-                    shadow: shadow
-                });
-
-                window.markers.push(marker);
-                google.maps.event.addListener(marker, 'click', (function (marker) {
-                    return function () {
-                        infowindow.setContent(content);
-                        infowindow.open(map, marker);
-                    }
-                })(marker));
-
-                markerBounds.extend(new google.maps.LatLng(pair.value.gmapsCenterlat, pair.value.gmapsCenterlng));
-            }
-            map.fitBounds(markerBounds);
-        });
-
-        if (this.shops) {
-            this.shops.scrollTop = 1;
-            this.checkInfoClick();
-        }
-    }, saveParcelShop: function (evt) {
         if (this.container.id == "parcelshop") {
-            var shopId = evt.target.id;
-            setTimeout(function () {
-                parent.Windows.close("DPD_window", evt);
-            }, 1);
-            this.container = window.parent.document.getElementById('checkout-shipping-method-load');
+            parent.Windows.close("DPD_window");
+            this.saveParcelShopFromIframe(evt);
+            return;
         }
-        else {
-            var shopId = evt.target.id;
-        }
-        if (!shopId) {
-            shopId = evt.target.parentNode.id;
-        }
-        this.container.down('#s_method_dpdparcelshops_dpdparcelshops').checked = true;
+
+        //this.container.down('#s_method_dpdparcelshops_dpdparcelshops').checked = true;
         var reloadurl = this.config.saveParcelUrl;
-        var data = this.config[shopId];
-        var loaderurl = this.config.loaderimage;
         var parcelshop = this.container.down('#parcelshop');
 
         parcelshop.update('<div class="dpdloaderwrapper" style="margin-bottom:35px;"><span class="dpdloader"></span><span class="message"></span></div><input type="hidden" class="DPD-confirmed" value="0"/>');
-        new parent.Ajax.Request(reloadurl, {
-            method: "POST",
-            asynchronous: false,
-            evalScripts: true,
-            parameters: data,
-            onSuccess: function(data) {
-                this.container.down('#dpd').update(data.responseText);
 
-                var price = this.container.down('#custom-shipping-amount').value;
-                var priceContainer = this.container.down('label[for="s_method_dpdparcelshops_dpdparcelshops"] span');
-                var oldPrice = priceContainer.innerHTML;
-                priceContainer.update(price);
-                if(price.substring(1) != oldPrice.substring(1)) {
-                    priceContainer.addClassName('price-changed');
-                    parent.setTimeout(function(){
-                        priceContainer.removeClassName('price-changed');
-                    }.bind(this), 2000)
-                }
-            }.bind(this)
-        });
+        var options = {
+            method: 'POST',
+            url: reloadurl,
+            data: evt
+        };
 
-    }, invalidateParcel: function (evt) {
+        jQuery.ajax(options).done(function (data) {
+            this.container.down('#dpd').update(data);
+
+            var price = this.container.down('#custom-shipping-amount').value;
+            var priceContainer = this.container.down('label[for="s_method_dpdparcelshops_dpdparcelshops"] span');
+            var oldPrice = priceContainer.innerHTML;
+            priceContainer.update(price);
+            if(price.substring(1) != oldPrice.substring(1)) {
+                priceContainer.addClassName('price-changed');
+                parent.setTimeout(function(){
+                    priceContainer.removeClassName('price-changed');
+                }.bind(this), 2000)
+            }
+        }.bind(this));
+    },
+    invalidateParcel: function (evt) {
         var reloadurl = this.config.invalidateParcelUrl;
-        var loaderurl = this.config.loaderimage;
         var parcelshop = this.container.down('#parcelshop');
         var dialog = this.container.down('.dialog');
         this.container.down('#s_method_dpdparcelshops_dpdparcelshops').checked = true;
@@ -199,11 +233,10 @@ DPD.Connect = Class.create({
             this.container.down('#s_method_dpdparcelshops_dpdparcelshops').checked = true;
             showDPDWindow(this.config.windowParcelUrl + "?windowed=true",
                 'iframe',
-                (parseInt(this.config.gmapsWidth.replace("px", "")) + 40), (parseInt(this.config.gmapsHeight.replace("px", "")) + 40),
+                (parseInt(this.config.gmapsWidth.replace("px", ""))), (parseInt(this.config.gmapsHeight.replace("px", ""))),
                 this.config
             );
-        }
-        else {
+        } else {
             parcelshop.update('<div class="dpdloaderwrapper"><span class="dpdloader"></span>' + this.config.loadingmessage + '</div>' +
                 '<input type="hidden" class="DPD-confirmed" value="0"/>');
             new parent.Ajax.Updater({success: this.container.down('#dpd')}, reloadurl, {
@@ -212,38 +245,30 @@ DPD.Connect = Class.create({
                 evalScripts: true
             })
         }
-    }, showExtraInfo: function (evt) {
-        if (this.container.down('.extrainfowrapper').visible()) {
+    },
+    showExtraInfo: function (evt) {
+        var left = evt.target.offsetLeft;
+        this.container.down('.extrainfowrapper').show().setStyle({left: left + 'px'});
+    },
+    hideExtraInfo: function (evt) {
+        if(this.container.down('.extrainfowrapper')) {
             this.container.down('.extrainfowrapper').hide();
         }
+    },
+    toggleExtraInfo: function (evt) {
+        if (this.container.down('.extrainfowrapper').visible()) {
+            this.hideExtraInfo(evt);
+        }
         else {
-            var left = evt.target.offsetLeft;
-            var openinghours = this.container.down('.extrainfowrapper');
-            this.container.down('.extrainfowrapper').show().setStyle({left: left + 'px'});
+            this.showExtraInfo(evt);
         }
-    }, checkInfoClick: function () {
-        this.showInfoBubble = $$('.show-info-bubble');
-        if (this.showInfoBubble) {
-            this.showInfoBubble.each(function (bubble) {
-                bubble.observe('click', function () {
-                    marker = window.markers[this.id];
-                    google.maps.event.trigger(marker, "click");
-                });
-            })
-        }
-
-    }, setParcelshopImage: function () {
-        var shopId = "shop" + this.container.down('.parcelshopId').value;
-        if (this.config[shopId]) {
-            if (this.config[shopId]['special'] && this.config[shopId]['specialImage'] != "") {
-                this.container.down('.parcelshoplogo').src = this.config[shopId]['specialImage'];
-            }
-        }
-    }, updateProgressBlock: function () {
+    },
+    updateProgressBlock: function () {
         var progressContents = $$('#checkout-progress-wrapper a[href="#shipping_method"]')[0];
         if (!progressContents) {
             progressContents = $$('.opc-block-progress a[href="#shipping_method"]')[0];
         }
+
         if (progressContents != undefined) {
             if (!$('s_method_dpdparcelshops_dpdparcelshops').checked && progressContents.up().next().innerHTML) {
                 var request = new Ajax.Request(
@@ -256,5 +281,8 @@ DPD.Connect = Class.create({
                 );
             }
         }
+    },
+    getDefaultContainer: function () {
+        return document.getElementById('checkout-shipping-method-load');
     }
 });

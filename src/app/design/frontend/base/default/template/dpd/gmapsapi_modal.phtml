@@ -1,0 +1,19 @@
+<?php
+/**
+ * Created by PHPro
+ *
+ * @package      DPD
+ * @subpackage   Shipping
+ * @category     Checkout
+ * @author       PHPro (info@phpro.be)
+ */
+/**
+ * Import the api with or without key in header.
+ */
+
+$url = Mage::getSingleton('dpd/webservice')->getClientUrl();
+
+?>
+    <script
+        src="<?php echo sprintf('%s/parcelshop/map/js', $url) ?>"
+        type="text/javascript"></script>

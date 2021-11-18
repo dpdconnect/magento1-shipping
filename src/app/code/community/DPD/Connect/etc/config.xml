@@ -2,7 +2,7 @@
 <config>
     <modules>
         <DPD_Connect>
-            <version>2.0.1</version>
+            <version>2.2.0</version>
         </DPD_Connect>
     </modules>
     <global>
@@ -88,7 +88,6 @@
         </template>
     </global>
     <frontend>
-
         <layout>
             <updates>
                 <dpd>
@@ -183,9 +182,9 @@
         </translate>
         <layout>
             <updates>
-                <dpdconnect>
+                <DPD_Connect>
                     <file>dpd/connect.xml</file>
-                </dpdconnect>
+                </DPD_Connect>
             </updates>
         </layout>
     </adminhtml>
@@ -195,6 +194,9 @@
                 <hostname>https://api.dpdconnect.nl</hostname>
                 <hostname>https://api.dpdconnect.nl</hostname>
             </dpd>
+            <dpdclassic>
+                <customs_terms>DAPNP</customs_terms>
+            </dpdclassic>
         </shipping>
         <carriers>
             <dpdclassic>
@@ -220,6 +222,7 @@
                 <default>0</default>
                 <ratetype>0</ratetype>
                 <flatrateprice>0</flatrateprice>
+                <use_dpd_maps_key>1</use_dpd_maps_key>
                 <google_maps_width>600</google_maps_width>
                 <google_maps_height>430</google_maps_height>
                 <paperformat>0</paperformat>

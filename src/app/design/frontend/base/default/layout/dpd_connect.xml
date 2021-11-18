@@ -23,6 +23,11 @@
             <block type="core/template" name="gmapsapi" template="dpd/gmapsapi.phtml"/>
         </reference>
     </dpd_checkout_header>
+    <dpd_checkout_header_gmaps_modal>
+        <reference name="head">
+            <block type="core/template" name="gmapsapi" template="dpd/gmapsapi_modal.phtml"/>
+        </reference>
+    </dpd_checkout_header_gmaps_modal>
     <checkout_onepage_index>
         <update handle="dpd_checkout_header"/>
     </checkout_onepage_index>
@@ -33,11 +38,13 @@
             </action>
         </reference>
         <update handle="dpd_checkout_header"/>
+        <update handle="dpd_checkout_header_gmaps_modal"/>
         <reference name="content">
             <block type="dpd/carrier_parcelshop" name="dpd" template="dpd/parcelshop.phtml"/>
         </reference>
     </dpd_ajax_windowindex>
     <dpd_ajax_index>
+        <update handle="dpd_checkout_header"/>
         <block type="dpd/carrier_parcelshop" name="root" template="dpd/parcelshop.phtml" output="toHtml"/>
     </dpd_ajax_index>
     <dpd_ajax_saveparcel>

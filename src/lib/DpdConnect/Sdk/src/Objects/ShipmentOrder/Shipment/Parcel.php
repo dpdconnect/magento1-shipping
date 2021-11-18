@@ -6,6 +6,11 @@ use DpdConnect\Sdk\Api\Data\ShipmentOrder\Shipment\ParcelInterface;
 use DpdConnect\Sdk\Objects\BaseObject;
 use JsonSerializable;
 
+/**
+ * Class Parcel
+ *
+ * @package DpdConnect\Sdk\Objects\ShipmentOrder\Shipment
+ */
 class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
 {
     /**
@@ -31,7 +36,17 @@ class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
     /**
      * @var CashOnDelivery
      */
-    protected $cashOnDelivery = false;
+    protected $cod = false;
+
+    /**
+     * @var int|null
+     */
+    protected $goodsExpirationDate = null;
+
+    /**
+     * @var string|null
+     */
+    private $goodsDescription = null;
 
     /**
      * @return string
@@ -43,11 +58,13 @@ class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
 
     /**
      * @param string $parcelLabelNumber
+     *
      * @return Parcel
      */
     public function setParcelLabelNumber($parcelLabelNumber)
     {
         $this->parcelLabelNumber = $parcelLabelNumber;
+
         return $this;
     }
 
@@ -61,11 +78,13 @@ class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
 
     /**
      * @param string[] $customerReferences
+     *
      * @return Parcel
      */
     public function setCustomerReferences($customerReferences)
     {
         $this->customerReferences = $customerReferences;
+
         return $this;
     }
 
@@ -79,11 +98,13 @@ class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
 
     /**
      * @param string $volume
+     *
      * @return Parcel
      */
     public function setVolume($volume)
     {
         $this->volume = $volume;
+
         return $this;
     }
 
@@ -97,29 +118,73 @@ class Parcel extends BaseObject implements JsonSerializable, ParcelInterface
 
     /**
      * @param int|null $weight
+     *
      * @return Parcel
      */
     public function setWeight($weight)
     {
         $this->weight = $weight;
+
         return $this;
     }
 
     /**
      * @return CashOnDelivery
      */
-    public function getCashOnDelivery()
+    public function getCod()
     {
-        return $this->cashOnDelivery;
+        return $this->cod;
     }
 
     /**
-     * @param CashOnDelivery $cashOnDelivery
+     * @param CashOnDelivery $cod
+     *
      * @return Parcel
      */
-    public function setCashOnDelivery($cashOnDelivery)
+    public function setCod($cod)
     {
-        $this->cashOnDelivery = $cashOnDelivery;
+        $this->cod = $cod;
+
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getGoodsExpirationDate()
+    {
+        return $this->goodsExpirationDate;
+    }
+
+    /**
+     * @param int|null $goodsExpirationDate
+     *
+     * @return Parcel
+     */
+    public function setGoodsExpirationDate($goodsExpirationDate)
+    {
+        $this->goodsExpirationDate = $goodsExpirationDate;
+
+        return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getGoodsDescription()
+    {
+        return $this->goodsDescription;
+    }
+
+    /**
+     * @param string|null $goodsDescription
+     *
+     * @return Parcel
+     */
+    public function setGoodsDescription($goodsDescription)
+    {
+        $this->goodsDescription = $goodsDescription;
+
         return $this;
     }
 }

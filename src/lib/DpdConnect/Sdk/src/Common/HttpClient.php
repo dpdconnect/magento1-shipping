@@ -3,11 +3,18 @@
 namespace DpdConnect\Sdk\Common;
 
 use DpdConnect\Sdk\Client;
-use DpdConnect\Sdk\Common;
-use DpdConnect\Sdk\Exceptions;
+use DpdConnect\Sdk\Exceptions\AuthenticateException;
 use DpdConnect\Sdk\Exceptions\HttpException;
+use DpdConnect\Sdk\Exceptions\ServerException;
+use DpdConnect\Sdk\Objects\MetaData;
+use DpdConnect\Sdk\Objects\ObjectFactory;
 use InvalidArgumentException;
 
+/**
+ * Class HttpClient
+ *
+ * @package DpdConnect\Sdk\Common
+ */
 class HttpClient implements HttpClientInterface
 {
     const REQUEST_GET = 'GET';
@@ -29,19 +36,19 @@ class HttpClient implements HttpClientInterface
     protected $userAgent = [];
 
     /**
-     * @var Common\Authentication
+     * @var Authentication
      */
     protected $authentication;
 
     /**
      * @var int
      */
-    private $timeout = 10000;
+    private $timeout = 100;
 
     /**
      * @var int
      */
-    private $connectionTimeout = 10000;
+    private $connectionTimeout = 100;
 
     /**
      * @var array
@@ -54,7 +61,7 @@ class HttpClient implements HttpClientInterface
     private $httpOptions = [];
 
     /**
-     * @var array
+     * @var MetaData
      */
     private $meta;
 
@@ -64,13 +71,13 @@ class HttpClient implements HttpClientInterface
      * @param int    $connectionTimeout >= 0
      * @param array  $headers
      */
-    public function __construct($endpoint, $timeout = 10, $connectionTimeout = 10, $headers = [])
+    public function __construct($endpoint, $timeout = 1000, $connectionTimeout = 1000, $headers = [])
     {
         $this->endpoint = $endpoint;
 
         if (!is_int($timeout) || $timeout < 1) {
             throw new InvalidArgumentException(
-                'Timeout must be an int > 0, got "' . is_object($timeout)
+                'Timeout must be an int > 0, got "'.is_object($timeout)
             );
         }
 
@@ -80,7 +87,7 @@ class HttpClient implements HttpClientInterface
             throw new InvalidArgumentException(
                 sprintf(
                     is_object($connectionTimeout) ? get_class($connectionTimeout) :
-                        gettype($connectionTimeout) . ' ' . var_export($connectionTimeout, true),
+                        gettype($connectionTimeout).' '.var_export($connectionTimeout, true),
                     'Connection timeout must be an int >= 0, got "%s".'
                 )
             );
@@ -91,9 +98,21 @@ class HttpClient implements HttpClientInterface
     }
 
     /**
-     * @param array $meta
+     * @return Metadata
      */
-    public function setMeta(array $meta = [])
+    private function getMeta()
+    {
+        if (!$this->meta) {
+            $this->meta = ObjectFactory::create(MetaData::class, []);
+        }
+
+        return $this->meta;
+    }
+
+    /**
+     * @param MetaData $meta
+     */
+    public function setMeta($meta = null)
     {
         $this->meta = $meta;
     }
@@ -107,9 +126,9 @@ class HttpClient implements HttpClientInterface
     }
 
     /**
-     * @param Common\Authentication $Authentication
+     * @param Authentication $authentication
      */
-    public function setAuthentication(Common\Authentication $authentication)
+    public function setAuthentication(Authentication $authentication)
     {
         $this->authentication = $authentication;
     }
@@ -122,14 +141,17 @@ class HttpClient implements HttpClientInterface
      */
     public function getRequestUrl($resourceName, $query)
     {
-        $requestUrl = $this->endpoint . '/' . $resourceName;
+        if ($this->endpoint == NULL || $this->endpoint == "") {
+            $this->endpoint = Client::ENDPOINT;
+        }
+
+        $requestUrl = $this->endpoint.'/'.$resourceName;
         if ($query) {
             if (is_array($query)) {
                 $query = http_build_query($query);
             }
-            $requestUrl .= '?' . $query;
+            $requestUrl .= '?'.$query;
         }
-
         return $requestUrl;
     }
 
@@ -152,6 +174,7 @@ class HttpClient implements HttpClientInterface
 
     /**
      * @param $option
+     *
      * @return mixed|null
      */
     public function getHttpOption($option)
@@ -160,37 +183,33 @@ class HttpClient implements HttpClientInterface
     }
 
     /**
-     * @param string $method
-     * @param string $resourceName
-     * @param mixed $query
-     * @param array $headers
+     * @param string      $method
+     * @param string      $resourceName
+     * @param mixed       $query
+     * @param array       $headers
      * @param string|null $body
+     *
      * @return array
      *
-     * @throws Exceptions\AuthenticateException
-     * @throws Exceptions\HttpException
+     * @throws AuthenticateException
+     * @throws HttpException
+     * @throws ServerException
      */
     public function sendRequest($method, $resourceName, $query = null, $headers = [], $body = null)
     {
         $curl = curl_init();
 
-//        if ($this->authentication === null) {
-//            throw new Exceptions\AuthenticateException('Can not perform API Request without Authentication');
-//        }
-
-        list($webshopType, $webshopVersion, $pluginVersion) = $this->parseMeta();
-
         $baseHeaders = [
-            'User-agent: ' . implode(' ', $this->userAgent),
+            'User-agent: '.implode(' ', $this->userAgent),
             'Accept: application/json',
             'Content-Type: application/json',
             'Accept-Charset: utf-8',
-            'x-php-version: ' . $this->getPhpVersion(),
-            'x-webshop-type: ' . $webshopType,
-            'x-webshop-version: ' . $webshopVersion,
-            'x-plugin-version: ' . $pluginVersion,
-            'x-sdk-version: ' . Client::CLIENT_VERSION,
-            'x-os: ' . php_uname(),
+            'x-php-version: '.$this->getPhpVersion(),
+            'x-webshop-type: '.$this->getMeta()->getWebshopType(),
+            'x-webshop-version: '.$this->getMeta()->getWebshopVersion(),
+            'x-plugin-version: '.$this->getMeta()->getPluginVersion(),
+            'x-sdk-version: '.Client::CLIENT_VERSION,
+            'x-os: '.php_uname(),
         ];
 
         $baseHeaders = array_merge($baseHeaders, $headers, $this->headers);
@@ -221,23 +240,30 @@ class HttpClient implements HttpClientInterface
             curl_setopt($curl, CURLOPT_POSTFIELDS, $body);
         }
 
+
         $response = curl_exec($curl);
 
         if ($response === false) {
             throw new HttpException(curl_error($curl), curl_errno($curl));
         }
 
-        $responseStatus = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $responseStatus = (int)curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
 
         // Split the header and body
         $parts = explode("\r\n\r\n", $response, 3);
+        switch ($responseStatus) {
+            case 500:
+                throw new ServerException($parts[1]);
+            case 401:
+                throw new AuthenticateException($parts[1]);
+        }
+
         if (in_array($parts[0], ['HTTP/1.1 200 OK', 'HTTP/1.1 100 Continue'])) {
             list($responseHeader, $responseBody) = [$parts[1], $parts[2]];
         } else {
             list($responseHeader, $responseBody) = [$parts[0], $parts[1]];
         }
-
-        curl_close($curl);
 
         return [$responseStatus, $responseBody];
     }
@@ -252,21 +278,6 @@ class HttpClient implements HttpClientInterface
             define('PHP_VERSION_ID', $version[0] * 10000 + $version[1] * 100 + $version[2]);
         }
 
-        return 'PHP/' . PHP_VERSION_ID;
-    }
-
-    private function parseMeta()
-    {
-        if (!$this->meta) {
-            $this->meta = [];
-        }
-
-        $meta = $this->meta;
-
-        $webshopType = isset($meta['webshopType']) ? $meta['webshopType'] : 'unknown';
-        $webshopVersion = isset($meta['webshopVersion']) ? $meta['webshopVersion'] : 'unknown';
-        $pluginVersion = isset($meta['pluginVersion']) ? $meta['pluginVersion'] : 'unknown';
-
-        return [$webshopType, $webshopVersion, $pluginVersion];
+        return 'PHP/'.PHP_VERSION_ID;
     }
 }

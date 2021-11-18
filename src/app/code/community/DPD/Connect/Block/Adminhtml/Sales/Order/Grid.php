@@ -210,9 +210,9 @@ class DPD_Connect_Block_Adminhtml_Sales_Order_Grid extends Mage_Adminhtml_Block_
         $this->setMassactionIdField('main_table.entity_id');
         $this->getMassactionBlock()->setFormFieldName('entity_id');
         $this->getMassactionBlock()->addItem('generateAndComplete', array(
-            'label' => Mage::helper('dpd')->__('Generate Label and Complete'),
-            'url' => $this->getUrl('*/*/generateAndComplete'),
-            'confirm' => Mage::helper('dpd')->__('Generating a label can take up to 1 second per label, please be patient during this process. It can take up to maximum 2 minutes. Do you want to continue?')
+            'label' => Mage::helper('dpd')->__('Generate Labels and Complete'),
+            'url' => $this->getUrl('adminhtml/checkshipment/index'),
+            'confirm' => Mage::helper('dpd')->__('Are you sure you want to create shipments and labels for the selected orders?')
         ));
         $this->getMassactionBlock()->addItem('dowloadAllUndownloaded', array(
             'label' => Mage::helper('dpd')->__('Download all undownloaded'),

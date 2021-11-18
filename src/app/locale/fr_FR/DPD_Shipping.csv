@@ -16,6 +16,7 @@
 "Country","Pays"
 "DPD Label","Etiquette DPD"
 "DPD Orders","Commandes DPD"
+"DPD Shipping","Expédition DPD"
 "DPD Return Label","Etiquette DPD retour"
 "DPD Return Labels","Etiquettes DPD retour"
 "DPD Type","DPD Type"
@@ -34,7 +35,7 @@
 "Flat Rate","Prix fixe"
 "G.T. (Base)","G.T. (base)"
 "G.T. (Purchased)","G.T. (achet&eacute;)"
-"Generate Label and Complete","Cre&euml;er une &eacute;tiquette et quitter"
+"Generate Labels and Complete","Cre&euml;er une &eacute;tiquette et quitter"
 "Inline","Inline"
 "Invalid %s "%s" in the Row #%s.","%s incorrect dans ligne %s"
 "Invalid Country "%s" in the Row #%s.","%s pays incorrect dans ligne %s"
@@ -47,7 +48,7 @@
 "Label number", "R&eacute;f&eacute;rence &eacute;tiquette"
 "Loading DPD parcelshop map based on your address...","Les ParcelShops DPD on &eacute;t&eacute; t&eacute;l&eacute;charg&eacute;s en fonction de votre adresse"
 "No CSV uploaded.","Aucun CVS n'a &eacute;t&eacute; t&eacute;l&eacute;charg&eacute;."
-"No label generated yet - please perform the 'Generate Label and Complete' action from the overview.","Etiquette pas encore cre&eacute;e - veuillez utiliser le 'Cre&eacute;er Etiquette et quitter' action de l'index.
+"No labels generated yet - please perform the 'Generate Labels and Complete' action from the overview.","Etiquette pas encore cre&eacute;e - veuillez utiliser le 'Cre&eacute;er Etiquette et quitter' action de l'index.
 "No records found.","Aucun r&eacute;sultat"
 "No undownloaded labels found.","Aucune &eacute;tiquette disponible"
 "Order #","Commande n°"
@@ -77,8 +78,11 @@
 "Your csv does not have the following required attributes %s on row %s.  Please refer to the manual.","Votre CSV ne contient pas les donn&eacute;es requises dans la ligne % Veuillez consulter votre manuel"
 "Your csv does not have the required AA header. Please refer to the manual.","Votre CSV n'a pas le format AA requis. Veuillez consulter votre manuel"
 "Your csv does not have the required ZZ ending. Please refer to the manual.","Votre CSV ne contient pas les ZZ requis dans la ligne % Veuillez consulter votre manuel"
-"%s label(s) have been generated and statuses have been changed.","Vos &eacute;tiquettes sont &eacute;dit&eacute;es et les statuts mis à jour"
+"The label(s) have been generated and statuses have been changed.","Vos &eacute;tiquettes sont &eacute;dit&eacute;es et les statuts mis à jour"
 "Your return label and instructions file have been generated and is available under "DPD Return Labels" in this order.","Votre &eacute;tiquette retour et les instructions ont &eacute;t&eacute; cree&eacute;s et sont disponibles dans cette commande sous DPD &eacute;tiquettes retour"
 "Your selected order is not ready to be shipped or has already been shipped, operation canceled.", "La commande s&eacute;lectionn&eacute;e n'est pas pr&ecirc;te à l'envoi ou a d&eacute;jà &eacute;t&eacute; envoy&eacute;e. Demande annul&eacute;e.
 "Zip/Postal Code";"Code postal"
 "No data found, please fill in the required shipping data.","Aucune donnée disponible, s'il vous plaît remplir les dates d'expédition nécessaires."
+"Default","Défaut"
+"Fresh"
+"Freeze"

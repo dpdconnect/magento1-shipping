@@ -1,7 +1,15 @@
 <?php
 
 
+use DpdConnect\Sdk\Client;
 use DpdConnect\Sdk\ClientBuilder;
+use DpdConnect\Sdk\Common\ResourceClient;
+use DpdConnect\Sdk\Exceptions\DpdException;
+use DpdConnect\Sdk\Objects\MetaData;
+use DpdConnect\Sdk\Objects\ObjectFactory;
+use DpdConnect\Sdk\Resources\Token;
+use DpdConnect\Shipping\Helper\Constants;
+use DpdConnect\Shipping\Helper\DpdSettings;
 
 /**
  * Class DPD_Connect_Model_Webservice
@@ -99,6 +107,11 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
     CONST XML_PATH_DPD_EORI_NUMBER = 'shipping/dpdclassic/sender_eori';
 
     /**
+     * XML path to configuration setting for customs terms.
+     */
+    CONST XML_PATH_DPD_CUSTOMS_TERMS = 'shipping/dpdclassic/customs_terms';
+
+    /**
      * XML path to configuration setting for paperformat of shipping labels.
      */
     CONST XML_PATH_DPD_PAPERFORMAT = 'shipping/dpdclassic/paperformat';
@@ -156,24 +169,34 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
     }
 
     /**
-     * @return bool|\DpdConnect\Sdk\ClientInterface
+     * @return Client
      */
     protected function _apiBuilder()
     {
         $username = Mage::getStoreConfig(self::XML_PATH_DPD_API_USERNAME);
         $password = Mage::helper('core')->decrypt(Mage::getStoreConfig(self::XML_PATH_DPD_API_PASSWORD));
-        $hostname = Mage::getStoreConfig(self::XML_PATH_DPD_API_HOSTNAME);
+        $hostname = $this->getClientUrl();
+        $cache = Mage::app()->getCache();
 
         try {
-            $clientBuiler = new ClientBuilder($hostname, [
+            $clientBuilder = new ClientBuilder($hostname, ObjectFactory::create(MetaData::class, [
                 'webshopType'       => 'Magento',
-                'webshopVersion'    => '1.9.4.2',
+                'webshopVersion'    => Mage::getVersion(),
                 'pluginVersion'     => '2.0'
-            ]);
+            ]));
 
-            $client = $clientBuiler->buildAuthenticatedByPassword(
+            $client = $clientBuilder->buildAuthenticatedByPassword(
                 $username, $password
             );
+
+            $client->getAuthentication()->setJwtToken(
+                $cache->load('dpdconnect_jwt_token') ?: null
+            );
+
+            $client->getAuthentication()->setTokenUpdateCallback(function ($jwtToken) use ($cache, $client) {
+                $cache->save($jwtToken, 'dpdconnect_jwt_token');
+                $client->getAuthentication()->setJwtToken($jwtToken);
+            });
 
             return $client;
         } catch(\Exception $exception) {
@@ -184,13 +207,22 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
     }
 
     /**
+     * @return Token
+     */
+    public function getToken() {
+        $client = $this->_apiBuilder();
+        return $client->getToken();
+    }
+
+    /**
      * Get parcelshops from webservice findParcelShopsByGeoData.
      *
      * @param $longitude
      * @param $latitude
+     * @param $country
      * @return mixed
      */
-    public function getParcelShops($longitude, $latitude)
+    public function getParcelShops($longitude, $latitude, $country = 'nl')
     {
         $apiBuilder = $this->_apiBuilder();
 
@@ -198,13 +230,24 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             'longitude'                 => $longitude,
             'latitude'                  => $latitude,
             'limit'                     => 10,
-            'countryIso'                => 'nl',
+            'countryIso'                => $country,
             'consigneePickupAllowed'    => 'true'
         );
 
         $result = $apiBuilder->getParcelshop()->getList($parameters);
 
         return $result;
+    }
+
+    /**
+     * @return array
+     * @throws DpdException
+     */
+    public function getAvailableProducts()
+    {
+        $apiBuilder = $this->_apiBuilder();
+
+        return $apiBuilder->getProduct()->getList();
     }
 
     /**
@@ -238,8 +281,7 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
                 ),
                 "parcels" => [[
                     'customerReferences' => array($orderId),
-                    'volume' => '000010000',
-                    'weight' => 100
+                    'returns'            => true
                 ]],
             ]]
         );
@@ -255,7 +297,7 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
 
             return $result;
 
-        } catch(\Exception $exception) {
+        } catch(Exception $exception) {
             Mage::helper('dpd')->log($exception->getMessage(), Zend_Log::ERR);
             Mage::getSingleton('adminhtml/session')->addError('Something went wrong with the webservice, please check the log files.');
             return false;
@@ -267,24 +309,17 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
      * $recipient = array('name1' => '', 'street' => '', 'country' => '', 'zipCode' => '', 'city' => '');
      *
      * @param $recipient
-     * @param $order
+     * @param Mage_Sales_Model_Order $order
      * @param $shipment
-     * @param bool $parcelshop
-     * @return mixed
+     * @param false $parcelshop
+     * @return ResourceClient|false|int
      */
     public function getShippingLabel($recipient, Mage_Sales_Model_Order $order, $shipment, $parcelshop = false)
     {
         $apiBuilder = $this->_apiBuilder();
         $sender = $this->_getSenderInformation();
         $recipient['postalcode'] = str_replace(' ', '', $recipient['postalcode']);
-        $language = Mage::helper('dpd')->getLanguageFromStore($order->getStoreId());
         $shippingMethod = $order->getShippingMethod();
-
-        if (Mage::getStoreConfig(self::XML_PATH_DPD_WEIGHTUNIT) == "") {
-            $weight = $shipment->getTotalWeight() * 100;
-        } else {
-            $weight = $shipment->getTotalWeight() * Mage::getStoreConfig(self::XML_PATH_DPD_WEIGHTUNIT);
-        }
 
         $i = 0;
         $lines = [];
@@ -294,12 +329,12 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             echo $product->getId();
             $i++;
             $lines[] = [
-                'description'           => $product->getName(),
+                'description'           => substr($product->getName(), 0, 35),
                 'harmonizedSystemCode'  => (!empty($product->getHsCode()) ? substr($product->getHsCode(), 0, 8) : (!empty($this->_getHsCodeDefault()) ? substr($this->_getHsCodeDefault(), 0, 8)     : "")),
                 'originCountry'         => (isset($item['item_origin_country']) ? $item['item_origin_country'] : "NL"),
                 'quantity'              => (int) $item->getQtyOrdered(),
-                'grossWeight'           => (int) round($item->getWeight()),
-                'totalAmount'           => (float) 10.00,
+                'grossWeight'           => (int) round($item->getWeight()) * 100,
+                'totalAmount'           => (float) ($item->getPriceInclTax()),
                 'customsLineNumber'     => $i,
             ];
         }
@@ -310,25 +345,29 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             'shipments'     => []
         );
 
-        $shipment = [
+        $productCode = $this->getProductCode($order, $shipment);
+
+        $homeDelivery = true;
+        if(($parcelshop || $productCode !== 'CL') && !$this->isFreshOrFreeze($shipment)) {
+            $homeDelivery = false;
+        }
+
+        $shipmentArray = [
             'orderId'       => $order->getIncrementId(),
             'sendingDepot'  => $this->_getSendingDepot(),
             'sender'        => $sender,
             'receiver'      => $recipient,
             'product'       => array(
-                'productCode' => $this->getProductCode($shippingMethod),
+                'productCode' => $productCode,
                 'saturdayDelivery' => $this->getSaturdayDelivery($shippingMethod),
+                'homeDelivery' => $homeDelivery
             ),
-            "parcels" => [[
-                'customerReferences' => array($order->getIncrementId()),
-                'volume'             => '000010000',
-                'weight'             =>  (int) round($shipment->getTotalWeight(),0)
-            ]],
+            "parcels" => [
+                $this->addParcel($order, $shipment)
+            ],
             'customs' => [
-                'description'         => "verkoop product",
-                'terms'               => 'DAP',
-                'reasonForExport'     => 'SALE',
-                'totalAmount'         => 10.00,
+                'terms'               => Mage::getStoreConfig(self::XML_PATH_DPD_CUSTOMS_TERMS),
+                'totalAmount'         => (float) $order->getBaseGrandTotal(),
                 'totalCurrency'       => $order->getOrderCurrency()->getCurrencyCode(),
                 'consignee'           => $sender,
                 'consignor'           => $recipient,
@@ -336,17 +375,23 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             ]
         ];
 
-        if ($parcelshop) {
+        if ($parcelshop && !$this->isFreshOrFreeze($shipment)) {
             $parcelShopId = $order->getDpdParcelshopId();
-            $shipment['product']['parcelshopId'] = $parcelShopId;
-            $shipment['notifications'][] = [
+            $shipmentArray['product']['parcelshopId'] = $parcelShopId;
+            $shipmentArray['notifications'][] = [
                 'subject' => 'parcelshop',
+                'channel' => 'EMAIL',
+                'value' => $order->getCustomerEmail(),
+            ];
+        } else {
+            $shipmentArray['notifications'][] = [
+                'subject' => 'predict',
                 'channel' => 'EMAIL',
                 'value' => $order->getCustomerEmail(),
             ];
         }
 
-        $request['shipments'] = [$shipment];
+        $request['shipments'] = [$shipmentArray];
 
         $result = null;
         try {
@@ -360,25 +405,71 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
         }
     }
 
-    private function getProductCode($shippingMethod, $return = false)
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @param null $shipment
+     * @return array
+     */
+    public function addParcel(Mage_Sales_Model_Order $order, $shipment = null)
+    {
+            $parcel = [
+                'customerReferences' => array(
+                    $order->getIncrementId(),
+                    !$this->isFreshOrFreeze($shipment) && $order->getDpdParcelshopId() ? $order->getDpdParcelshopId(): '',
+                    $shipment->getEntityId() ? $shipment->getEntityId() : ''
+                ),
+                'weight' =>  (int) round($shipment->getTotalWeight(),0) * 100
+            ];
+
+            if (null !== $shipment && $shipment->hasData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA)) {
+                $extradata = $shipment->getData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA);
+                if (isset($extradata['expirationDate']) && isset($extradata['description'])) {
+                    $parcel['goodsExpirationDate'] = intval(str_replace('-', '', $extradata['expirationDate']));
+                    $parcel['goodsDescription'] = $extradata['description'];
+                }
+            }
+
+            return $parcel;
+    }
+
+    private function getProductCode($order, $shipment, $return = false)
     {
         if ($return === true || $return === 1 || $return === '1') {
             return 'RETURN';
         }
 
-        if ($shippingMethod === 'dpd_e10') {
+        // Fetch the code from the shipment, if any, else default to the order code
+        if ($shipment && $shipment->hasData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA)) {
+            if($code = $shipment->getData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA)['code']) {
+                return $code;
+            }
+        }
+
+        if ($order->getShippingMethod() === 'dpd_e10') {
             return 'E10';
         }
 
-        if ($shippingMethod === 'dpd_e12') {
+        if ($order->getShippingMethod() === 'dpd_e12') {
             return 'E12';
         }
 
-        if ($shippingMethod === 'dpd_e18') {
+        if ($order->getShippingMethod() === 'dpd_e18') {
             return 'E18';
         }
 
         return 'CL';
+    }
+
+    private function isFreshOrFreeze($shipment) {
+        // Fetch the code from the shipment, if any, else default to the order code
+        // Because only Fresh/Freeze is accepted in Magento1 we do not have to check the type
+        if ($shipment && $shipment->hasData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA)) {
+            if($shipment->getData(Mage::helper('dpd/constants')->SHIPMENT_EXTRA_DATA)['code']) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function getSaturdayDelivery($shippingMethod, $returnLabel = false)
@@ -408,5 +499,9 @@ class DPD_Connect_Model_Webservice extends Mage_Core_Model_Abstract
             'verticalOffset'    => 0,
             'horizontalOffset'  => 0,
         ];
+    }
+
+    public function getClientUrl() {
+        return  Mage::getStoreConfig(self::XML_PATH_DPD_API_HOSTNAME) ? Mage::getStoreConfig(self::XML_PATH_DPD_API_HOSTNAME) : Client::ENDPOINT;
     }
 }

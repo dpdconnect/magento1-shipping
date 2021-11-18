@@ -1,7 +1,7 @@
 {
   "name": "dpdconnect/php-sdk",
-  "description": "DPD Magento2 Shipping extension",
-  "type": "magento2-library",
+  "type": "library",
+  "description": "DPD Connect PHP SDK",
   "license": "OSL-3.0",
   "authors": [
     {

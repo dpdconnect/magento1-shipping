@@ -1,5 +1,7 @@
 <?php
 
+use DpdConnect\Shipping\Helper\Constants;
+
 /**
  * Class DPD_Connect_Adminhtml_DpdorderController
  */
@@ -104,53 +106,54 @@ class DPD_Connect_Adminhtml_DpdorderController extends Mage_Adminhtml_Controller
     public function generateAndCompleteAction()
     {
         ini_set('max_execution_time', 120);
-        $orderIds = $this->getRequest()->getParam('entity_id');
-        $maxOrderCount = 100;
-            if(count($orderIds) > $maxOrderCount){
-            $message = Mage::helper('dpd')->__("The maximum number of orders to process is %s. You selected %s. Please deselect some orders and try again.",$maxOrderCount, count($orderIds));
-            Mage::getSingleton('core/session')->addError($message);
-            $this->_redirect('*/*/index');
-            return $this;
-        }
-        if (!is_array($orderIds)) {
-            try {
-                Mage::getModel('dpd/adminhtml_dpdgrid')->generateAndCompleteOrder($orderIds);
-                if(!is_object(Mage::getSingleton('core/session')->getMessages()->getLastAddedMessage())){
-                    $message = Mage::helper('dpd')->__("Your label has been generated and statuses have been changed.");
-                    Mage::getSingleton('core/session')->addSuccess($message);
-                }
-            } catch (Exception $e) {
-                Mage::helper('dpd')->log($e->getMessage(), Zend_Log::ERR);
-                $message = Mage::helper('dpd')->__("Your selected order is not ready to be shipped or has already been shipped, operation canceled.");
-                Mage::getSingleton('core/session')->addError($message);
-            }
-        } else {
-            try {
-                $counter = 0;
-                foreach ($orderIds as $orderId) {
-                    // sleep(0.300) // uncomment this line if you encounter web service load problems - ONLY WHEN INSTRUCTED BY DPD !
-                    try {
-                        $result = Mage::getModel('dpd/adminhtml_dpdgrid')->generateAndCompleteOrder($orderId);
-                        if($result){
-                                 $counter ++;
-                        }
-                    } catch (Exception $e) {
-                        Mage::helper('dpd')->log($e->getMessage(), Zend_Log::ERR);
-                        $order = Mage::getResourceModel('sales/order_collection')->addAttributeToSelect('increment_id')->addAttributeToFilter('entity_id', array('eq' => $orderId))->getFirstItem();
-                        $message = Mage::helper('dpd')->__("The order with id %s is not ready to be shipped or has already been shipped.", $order->getIncrementId());
-                        Mage::getSingleton('core/session')->addNotice($message);
+
+        try {
+            $totalLabels = 0;
+            $orders = [];
+
+            foreach ($this->getRequest()->getPost('order') as $orderId => $shippingProductData) {
+                $rows = [];
+                foreach ($shippingProductData as $row) {
+                    if ('' === $row['code']) {
+                        continue;
                     }
+
+                    $rows[] = $row;
+                    $totalLabels++;
                 }
-                if($counter > 0){
-                    $message = Mage::helper('dpd')->__("%s label(s) have been generated and statuses have been changed.", $counter);
-                    Mage::getSingleton('core/session')->addSuccess($message);
-                }
-            } catch (Exception $e) {
-                Mage::helper('dpd')->log($e->getMessage(), Zend_Log::ERR);
-                $message = Mage::helper('dpd')->__("Some of the selected orders are not ready to be shipped or have already been shipped, operation canceled.");
-                Mage::getSingleton('core/session')->addError($message);
+
+                $order = Mage::getModel('sales/order')->load($orderId);
+                $order->setData(Mage::helper('dpd/constants')->ORDER_EXTRA_SHIPPING_DATA, $rows);
+
+                $orders[] = $order;
             }
+
+            $counter = 0;
+            foreach ($orders as $order) {
+                // sleep(0.300) // uncomment this line if you encounter web service load problems - ONLY WHEN INSTRUCTED BY DPD !
+                try {
+                    $result = Mage::getModel('dpd/adminhtml_dpdgrid')->generateAndCompleteOrder($order);
+                    if($result){
+                        $counter ++;
+                    }
+                } catch (Exception $e) {
+                    Mage::helper('dpd')->log($e->getMessage(), Zend_Log::ERR);
+                    $order = Mage::getResourceModel('sales/order_collection')->addAttributeToSelect('increment_id')->addAttributeToFilter('entity_id', array('eq' => $order->getEntityId()))->getFirstItem();
+                    $message = Mage::helper('dpd')->__("The order with id %s is not ready to be shipped or has already been shipped.", $order->getIncrementId());
+                    Mage::getSingleton('core/session')->addNotice($message);
+                }
+            }
+
+            if($counter > 0){
+                $message = Mage::helper('dpd')->__("The label(s) have been generated and statuses have been changed.");
+                Mage::getSingleton('core/session')->addSuccess($message);
+            }
+        } catch (Exception $e) {
+            Mage::helper('dpd')->log($e->getMessage(), Zend_Log::ERR);
+            $message = Mage::helper('dpd')->__("Some of the selected orders are not ready to be shipped or have already been shipped, operation canceled.");
+            Mage::getSingleton('core/session')->addError($message);
         }
+
         $this->_redirect('*/*/index');
     }
 
@@ -185,7 +188,7 @@ class DPD_Connect_Adminhtml_DpdorderController extends Mage_Adminhtml_Controller
         $shipmentId = $this->getRequest()->getParam('shipment_id');
         $shipment = Mage::getModel('sales/order_shipment')->load($shipmentId);
         if ($shipment->getDpdLabelPath() == "") {
-            $message = Mage::helper('dpd')->__("No label generated yet - please perform the ‘Generate Label and Complete’ action from the overview.");
+            $message = Mage::helper('dpd')->__("No labels generated yet - please perform the ‘Generate Labels and Complete’ action from the overview.");
             Mage::getSingleton('core/session')->addError($message);
             $this->_redirect('*/sales_order_shipment/view/shipment_id/' . $shipmentId);
         } else {

@@ -50,21 +50,18 @@ class DPD_Connect_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function addHTML($html)
     {
-        $quote = Mage::getModel('checkout/cart')->getQuote();
         $block = Mage::app()->getLayout()->createBlock('dpd/carrier_parcelshop');
         $block->setShowUrl(true);
+
         preg_match('!<label for="(.*?)parcelshops">(.*?)<\/label>!s', $html, $matches);
         if (isset($matches[0])) {
-            if ($quote->getDpdSelected()) {
-                $html = str_replace($matches[0],
-                    $matches[0] . '<div id="dpd">' . $block->setTemplate('dpd/parcelshopselected.phtml')->toHtml() . '</div>',
-                    $html);
-            } else {
-                $html = str_replace($matches[0],
-                    $matches[0] . '<div id="dpd">' . $block->setTemplate('dpd/parcelshoplink.phtml')->toHtml() . '</div>',
-                    $html);
-            }
+            $html = str_replace(
+                $matches[0],
+                $matches[0] . '<div id="dpd">' . $block->setTemplate('dpd/parcelshoplink.phtml')->toHtml() . '</div>',
+                $html
+            );
         }
+
         return $html;
     }
 
@@ -89,7 +86,12 @@ class DPD_Connect_Helper_Data extends Mage_Core_Helper_Abstract
 
         $LATITUDE = $obj->results[0]->geometry->location->lat;
         $LONGITUDE = $obj->results[0]->geometry->location->lng;
-        return $LATITUDE . ',' . $LONGITUDE;
+
+        return [
+            'latitude' => $LATITUDE,
+            'longitude' => $LONGITUDE,
+            'country' => $address->getCountry()
+        ];
     }
 
     /**
@@ -182,6 +184,40 @@ class DPD_Connect_Helper_Data extends Mage_Core_Helper_Abstract
         if (strpos(Mage::helper("core/url")->getCurrentUrl(), 'onestepcheckout') !== false || strpos(Mage::app()->getRequest()->getHeader('referer'), 'onestepcheckout') !== false) {
             return true;
         }
+
+        return false;
+    }
+
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     * @return bool
+     */
+    public function isDPDOrder($order)
+    {
+        $shippingMethod = $order->getShippingMethod();
+
+        return (strpos($shippingMethod, 'dpd') === 0);
+    }
+
+    /**
+     * @param Mage_Sales_Model_Order $order
+     *
+     * @return bool
+     */
+    public function hasDpdFreshProducts(Mage_Sales_Model_Order $order)
+    {
+        $orderItems = $order->getAllVisibleItems();
+
+
+        foreach($orderItems as $orderItem) {
+            $product = Mage::getModel('catalog/product')->load($orderItem->getProduct()->getEntityId());
+
+            if (in_array($product->getData('dpd_shipping_type'), ['fresh', 'freeze'])) {
+                return true;
+            }
+        }
+
         return false;
     }
 
