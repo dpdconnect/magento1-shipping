@@ -8,4 +8,9 @@
             </action>
         </reference>
     </adminhtml_sales_order_view>
+    <adminhtml_checkshipment_index>
+        <reference name="content">
+            <block type="dpd/adminhtml_shipping_checkshipment" template="dpd/checkshipment.phtml" name="dpd.backend.checkshipment"/>
+        </reference>
+    </adminhtml_checkshipment_index>
 </layout>

@@ -22,6 +22,7 @@ class DPD_Connect_AjaxController extends Mage_Core_Controller_Front_Action {
         if($this->getRequest()->getParam('windowed')){
             $this->getLayout()->getBlock('dpd')->setIsAjax(true);
         }
+
         $this->renderLayout();
     }
 
@@ -30,12 +31,6 @@ class DPD_Connect_AjaxController extends Mage_Core_Controller_Front_Action {
      */
     public function saveparcelAction(){
         $parcelData =  $this->getRequest()->getPost();
-        if($parcelData['special'] === 'false') {
-            $parcelData['special'] = false;
-        }
-
-
-        
 
         $quote = Mage::getModel('checkout/cart')->getQuote();
 
@@ -43,12 +38,11 @@ class DPD_Connect_AjaxController extends Mage_Core_Controller_Front_Action {
             ->setDpdSelected(1)
             ->setDpdParcelshopId($parcelData['parcelShopId'])
             ->setDpdCompany($parcelData['company'])
-            ->setDpdStreet($parcelData['houseno'])
-            ->setDpdZipcode($parcelData['zipcode'])
+            ->setDpdStreet($parcelData['street'])
+            ->setDpdHouseNumber($parcelData['houseNo'])
+            ->setDpdZipcode($parcelData['zipCode'])
             ->setDpdCity($parcelData['city'])
-            ->setDpdCountry($parcelData['country'])
-            ->setDpdExtraInfo($parcelData['extra_info'])
-            ->setDpdSpecialPoint(Mage::getStoreConfig('carriers/dpdparcelshops/custom_parcelshops_free_shipping') && $parcelData['special'])
+            ->setDpdCountry($parcelData['isoAlpha2'])
             ->save();
 
         $quote->getShippingAddress()
@@ -59,7 +53,16 @@ class DPD_Connect_AjaxController extends Mage_Core_Controller_Front_Action {
         $quote->save();
 
         $this->loadLayout();
-        $this->renderLayout();
+
+        $block = $this->getLayout()
+            ->createBlock('dpd/carrier_parcelshop');
+
+        $block->setParcelShop($parcelData);
+        $block->setTemplate('dpd/parcelshopselected.phtml');
+
+        $html = $block->toHtml();
+
+        $this->getResponse()->setBody($html);
     }
 
     /**
@@ -69,5 +72,19 @@ class DPD_Connect_AjaxController extends Mage_Core_Controller_Front_Action {
         Mage::getModel('checkout/cart')->getQuote()->setDpdSelected(0)->save();
         $this->loadLayout();
         $this->renderLayout();
+    }
+
+    /**
+     * Get Google API key
+     */
+    public function jwtAction(){
+        $token = Mage::getSingleton('dpd/webservice')->getToken()->getPublicJWTToken(
+            Mage::getStoreConfig(DPD_Connect_Model_Webservice::XML_PATH_DPD_API_USERNAME),
+            Mage::helper('core')->decrypt(Mage::getStoreConfig(DPD_Connect_Model_Webservice::XML_PATH_DPD_API_PASSWORD))
+        );
+
+        $this->getResponse()->setBody(
+            Mage::helper('core')->jsonEncode(['token' => $token])
+        );
     }
 }

@@ -2,15 +2,21 @@
 
 namespace DpdConnect\Sdk\Common;
 
-use DpdConnect\Sdk\Common;
-use DpdConnect\Sdk\Exceptions;
+use DpdConnect\Sdk\Exceptions\AuthenticateException;
+use DpdConnect\Sdk\Exceptions\HttpException;
+use DpdConnect\Sdk\Objects\MetaData;
 
+/**
+ * Interface HttpClientInterface
+ *
+ * @package DpdConnect\Sdk\Common
+ */
 interface HttpClientInterface
 {
     /**
-     * @param array $meta
+     * @param MetaData $meta
      */
-    public function setMeta(array $meta = []);
+    public function setMeta($meta = null);
 
     /**
      * @param string $userAgent
@@ -18,13 +24,13 @@ interface HttpClientInterface
     public function addUserAgentString($userAgent);
 
     /**
-     * @param Common\Authentication $Authentication
+     * @param Authentication $authentication
      */
-    public function setAuthentication(Common\Authentication $Authentication);
+    public function setAuthentication(Authentication $authentication);
 
     /**
      * @param string $resourceName
-     * @param mixed $query
+     * @param mixed  $query
      *
      * @return string
      */
@@ -43,20 +49,21 @@ interface HttpClientInterface
 
     /**
      * @param $option
+     *
      * @return mixed|null
      */
     public function getHttpOption($option);
 
     /**
-     * @param string $method
-     * @param string $resourceName
-     * @param mixed $query
+     * @param string      $method
+     * @param string      $resourceName
+     * @param mixed       $query
      * @param string|null $body
      *
      * @return array
      *
-     * @throws Exceptions\AuthenticateException
-     * @throws Exceptions\HttpException
+     * @throws AuthenticateException
+     * @throws HttpException
      */
     public function sendRequest($method, $resourceName, $query = null, $headers = [], $body = null);
 }

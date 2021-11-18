@@ -11,6 +11,11 @@ use JsonSerializable;
  */
 class BaseObject implements JsonSerializable
 {
+    /**
+     * BaseObject constructor.
+     *
+     * @param array $data
+     */
     public function __construct(array $data = [])
     {
         if (count($data) > 0) {
@@ -34,18 +39,20 @@ class BaseObject implements JsonSerializable
                 }
             }
         }
+
         return $this;
     }
 
     /**
-     * @return string[]
+     * @return array
      */
     public function jsonSerialize()
     {
         $properties = get_object_vars($this);
-        $properties = array_filter($properties, function ($value) {
-            return ! empty($value);
-        });
+        $properties = array_filter($properties, static function ($value) {
+             return $value === false || !empty($value);
+         });
+
         return $properties;
     }
 }

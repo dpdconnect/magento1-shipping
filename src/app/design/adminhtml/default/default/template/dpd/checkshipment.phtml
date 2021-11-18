@@ -1,0 +1,202 @@
+<?php
+$orders = $this->getOrders();
+
+$hasFreshFreezeOrder = false;
+foreach($orders as $order) {
+    if ($this->hasFreshFreezeProducts($order)) {
+        $hasFreshFreezeOrder = true;
+        break;
+    }
+}
+?>
+<script>
+    function validate() {
+        const form = document.getElementById('dpd_shipment_form');
+        const inputs = form.getElementsByTagName('input');
+        let errors = 0;
+        for(let i = 0; i < inputs.length; i++) {
+            const input = inputs[i];
+            const type = input.getAttribute('type');
+            if ('hidden' === type) {
+                continue;
+            }
+
+            if(null === input.value || '' === input.value) {
+                input.setAttribute('style', 'border: 1px solid #ff0000; background-color: #ffcccc;');
+                errors++;
+            } else {
+                input.removeAttribute('style');
+            }
+        }
+
+        if (errors > 0) {
+            document.getElementById('form-validation-failed').removeAttribute('style');
+            return false;
+        }
+
+        document.getElementById('form-validation-failed').setAttribute('style', 'display: none;');
+        document.getElementById('download-started').removeAttribute('style');
+
+        return true;
+    }
+</script>
+
+<form id="dpd_shipment_form" method="post" action="<?php echo $this->getPostUrl() ?>" onsubmit="return validate();">
+    <?php echo $this->getBlockHtml('formkey')?>
+
+    <div class="content-header">
+        <table cellspacing="0">
+            <tbody>
+                <tr>
+                    <td style="width:50%;"><h3 class="icon-head head-adminhtml-sales-order"><?php echo $this->__('DPD Shipping') ?></h3></td>
+                    <td class="form-buttons"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="messages">
+        <ul class="messages">
+            <li id="form-validation-failed" class="error-msg error" style="display: none;">
+                <ul>
+                    <li>
+                        <span><?php echo $this->__('You didn\'t specify all of the necessary data. Please correct the red fields before continuing.') ?></span>
+                    </li>
+                </ul>
+            </li>
+            <li id="download-started" class="notice-msg info" style="display: none;">
+                <ul>
+                    <li>
+                        <span><?php echo $this->__('Your labels are being created, depending on the amount of labels this can take a while.') ?><a href="<?php echo $this->getOrderOverviewUrl() ?>"><?php echo $this->__('Go back') ?></a></span>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <table class="massaction" cellspacing="0" cellpadding="0">
+        <tbody><tr>
+            <td>
+                <div class="right">
+                    <div class="entry-edit">
+                        <fieldset>
+							<span class="field-row">
+								<button id="download" title="Download Labels" type="submit" class="scalable " ><?php echo $this->__('Generate Labels') ?></button>
+							</span>
+                        </fieldset>
+                    </div>
+
+                    <div class="no-display">
+                        <div id="dpd_shipping_grid_massaction-item-generateAndComplete-block">
+                        </div>
+                        <div id="dpd_shipping_grid_massaction-item-dowloadAllUndownloaded-block">
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="grid">
+        <div class="hor-scroll">
+            <table class="data" cellspacing="0">
+                <thead>
+                <tr class="headings">
+                    <th>#</th>
+                    <th><?php echo $this->__('Customer') ?></th>
+                    <th><?php echo $this->__('Products') ?></th>
+                    <th><?php echo $this->__('label type') ?></th>
+                    <?php if (true === $hasFreshFreezeOrder): ?>
+                        <th><?php echo $this->__('Goods expiration date') ?></th>
+                        <th><?php echo $this->__('Goods description') ?></th>
+                    <?php endif ?>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($orders as $orderI => $order): ?>
+                    <?php
+                    $rows = $this->getRows($order);
+                    foreach($rows as $rowI => $row):
+                        ?>
+                        <tr class="<?php echo ($orderI % 2 === 0 ? 'even' : 'pointer') ?>" style="vertical-align: center;">
+
+                            <?php if(0 === $rowI): ?>
+                                <td rowspan="<?php echo count($rows) ?>">
+                                    <span class="data-grid-cell-content"><?php echo $order->getIncrementId() ?></span>
+                                </td>
+                                <td rowspan="<?php echo count($rows) ?>">
+                            <span class="data-grid-cell-content">
+                            <?php echo $order->getCustomerName() ?><br/>
+                            <?php foreach ($order->getShippingAddress()->getStreet() as $street): ?>
+                                <?php echo $street ?><br/>
+                            <?php endforeach; ?>
+                                <?php echo $order->getShippingAddress()->getPostcode() ?> <?php echo $order->getShippingAddress()->getCity() ?>
+                            </span>
+                                </td>
+                            <?php endif; ?>
+
+                            <td>
+                            <span class="data-grid-cell-content">
+                                <div style="position: relative; height: 120px;">
+                            <?php foreach($row['products'] as $productI => $product): ?>
+                                <div style="position:absolute; left: <?php echo $productI * 30 ?>px; border: 1px solid #d8d8d8; padding: 1px; background-color: #ffffff;">
+                                <?php if($product->getImage() && $product->getImage() !== 'no_selection' ): ?>
+                                    <?php $imageUrl =
+                                        Mage::helper('catalog/image')
+                                            ->init($product, 'image')
+                                            ->constrainOnly(true)
+                                            ->keepAspectRatio(true)
+                                            ->keepTransparency(true)
+                                            ->keepFrame(false)
+                                            ->resize(75, 75); ?>
+                                    <img
+                                            src="<?php echo $imageUrl; ?>"
+                                            alt="<?php echo $product->getName() ?>"
+                                            title="<?php echo $product->getName() ?>"
+                                            onmouseenter="this.style.zIndex = 99999"
+                                            onmouseleave="this.style.zIndex = <?php echo $productI ?>"
+                                    /><br />
+                                <?php endif; ?>
+                                    SKU: <?php echo $product->getSKU() ?>
+                                </div>
+                            <?php endforeach; ?>
+                                </div>
+                            </span>
+                            </td>
+
+                            <td>
+                            <span class="data-grid-cell-content">
+                                <?php if('FRESH' === $row['code']): ?>
+                                    Fresh products<br />
+                                <?php elseif('FREEZE' === $row['code']): ?>
+                                    Frozen products<br />
+                                <?php elseif($this->isParcelshopOrder($order)): ?>
+                                    DPD Parcelshop Order<br />
+                                <?php else: ?>
+                                    DPD Home Delivery
+                                <?php endif; ?>
+                                <input type="hidden" name="order[<?php echo $order->getId() ?>][<?php echo $rowI ?>][productType]" value="<?php echo $row['productType'] ?>" />
+                                <?php if (in_array($row['code'], ['FRESH', 'FREEZE'])): ?>
+                                    <input type="hidden" name="order[<?php echo $order->getId() ?>][<?php echo $rowI ?>][code]" value="<?php echo $row['code'] ?>" />
+                                <?php endif; ?>
+                            </span>
+                            </td>
+
+                            <?php if(true === $hasFreshFreezeOrder): ?>
+                                <?php if (isset($row['expirationDate'])): ?>
+                                    <td><input type="date" name="order[<?php echo $order->getId() ?>][<?php echo $rowI ?>][expirationDate]" value="<?php echo $row['expirationDate'] ?>" /></td>
+                                    <td><input type="text" name="order[<?php echo $order->getId() ?>][<?php echo $rowI ?>][description]" value="<?php echo $row['description'] ?>" /></td>
+                                <?php else: ?>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>

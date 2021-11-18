@@ -12,36 +12,34 @@
  */
 ?>
 <?php
-$shippingaddress = Mage::getSingleton('checkout/session')->getQuote()->getShippingAddress();
+$quote = Mage::getSingleton('checkout/session')->getQuote();
+$shippingaddress = $quote->getShippingAddress();
 if(($shippingaddress->getPostcode() != "" && $shippingaddress->getPostcode() != "-") &&
 ($shippingaddress->getCountryId()!= "" && $shippingaddress->getCountryId()!= "-")):
 $height = Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_height');
-$html = $this->getShopsHtml();
+$width = Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_width');
+$modal = Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_display');
 ?>
 <style>
     .parcelshopwrapper .shops {
         height: <?php echo $height ?>px;
     }
 
-    #map_canvas {
+    .custom-panel-size {
         height: <?php echo $height ?>px;
+        width: <?php echo $width ?>px;
+        margin-top: <?php echo !$modal ? '10px': '0' ?>;
+        display: block;
     }
-
 </style>
 <div id="parcelshop" class="parcelshopwrapper">
-    <?php if($html): ?>
-    <div id="map_canvas" class="gmaps"></div>
-    <?php if (Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_enable_list')): ?>
-        <div class="shops">
-            <?php echo $html ?>
-        </div>
-    <?php endif; ?>
-    <?php if (!Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_display')): ?>
-        <a href="#" class="dpd_close_map"><?php echo Mage::helper('dpd')->__('Close this map') ?></a>
-    <?php endif; ?>
+    <div id="dpd-connect-map-container" class="custom-panel-size">
+        <div class="dpdloaderwrapper" style="margin-bottom:35px;"><span class="dpdloader"></span><span class="message"></span></div><input type="hidden" class="DPD-confirmed" value="0"/>
+    </div>
+    <div id="dpd-connect-selected-container" class="custom-panel-size"></div>
     <input type="hidden" class="DPD-confirmed" value="0"/>
     <script type="text/javascript">
-        window.dpdconfig = <?php echo $this->getConfig() ?>;
+        window.dpdconfig = <?php echo $this->getConfig(!$quote->getDpdSelected()) ?>;
         <?php if($this->getIsAjax() || Mage::getStoreConfig('carriers/dpdparcelshops/google_maps_display')): ?>
         window.dpdShipping = new DPD.Connect('DPD_window_content', window.dpdconfig);
         <?php elseif(Mage::helper('dpd')->getIsOnestepCheckout()): ?>
@@ -51,16 +49,5 @@ $html = $this->getShopsHtml();
         <?php endif; ?>
     </script>
     <div class="dpdclear"></div>
-    <?php else: ?>
-    <div class="dpderror">
-        <img src="<?php echo Mage::getDesign()->getSkinUrl('images/dpd/dpd_parcelshop_logo.png') ?>" alt="dpdlogo"/>
-        <h2><?php echo Mage::helper('dpd')->__('No parcelshops were found, please verify your shipping address.') ?></h2>
-    </div>
-    <?php endif ?>
-</div>
-<?php else: ?>
-<div class="dpderror">
-    <img src="<?php echo Mage::getDesign()->getSkinUrl('images/dpd/dpd_parcelshop_logo.png') ?>" alt="dpdlogo"/>
-    <h2><?php echo Mage::helper('dpd')->__('No data found, please fill in the required shipping data.'); ?></h2>
 </div>
 <?php endif; ?>

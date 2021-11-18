@@ -43,7 +43,7 @@ class DPD_Connect_Model_Observer
                 ->setSaveInAddressBook(0)
                 ->setFirstname('DPD ParcelShop: ')
                 ->setLastname($quote->getDpdCompany())
-                ->setStreet($quote->getDpdStreet())
+                ->setStreet($quote->getDpdStreet()  .' ' .$quote->getDpdHouseNumber())
                 ->setCity($quote->getDpdCity())
                 ->setPostcode($quote->getDpdZipcode())
                 ->setCountryId($quote->getDpdCountry())
@@ -84,12 +84,24 @@ class DPD_Connect_Model_Observer
     }
 
     /**
-     * Calculate and set the weight on the shipping to pass it to the webservice after a standard shipment save.
-     *
      * @param $observer
+     * @throws Exception
      */
     public function sales_order_shipment_save_before($observer)
     {
+        $currentUrl = Mage::helper('core/url')->getCurrentUrl();
+        $url = Mage::getSingleton('core/url')->parseUrl($currentUrl);
+        $path = $url->getPath();
+
+        if (false !== stripos($path, 'admin/dpdorder')) {
+            return;
+        }
+
+        if(Mage::helper('dpd')->hasDpdFreshProducts($observer->getEvent()->getShipment()->getOrder())) {
+            Mage::getSingleton('core/session')->addError(Mage::helper('dpd')->__('This order has DPD Fresh/Freeze products, shipments can only be made through the Sales/DPD Orders screen'));
+            throw new Exception(Mage::helper('dpd')->__('This order has DPD Fresh/Freeze products, shipments can only be made through the Sales/DPD Orders screen'));
+        }
+
         $shipment = $observer->getEvent()->getShipment();
         if (!$shipment->hasId() && !$shipment->getTotalWeight()) {
             $weight = Mage::helper('dpd')->calculateTotalShippingWeight($shipment);
@@ -113,7 +125,7 @@ class DPD_Connect_Model_Observer
                     ->setSaveInAddressBook(0)
                     ->setFirstname('DPD ParcelShop: ')
                     ->setLastname($quote->getDpdCompany())
-                    ->setStreet($quote->getDpdStreet())
+                    ->setStreet($quote->getDpdStreet()  .' ' .$quote->getDpdHouseNumber())
                     ->setCity($quote->getDpdCity())
                     ->setPostcode($quote->getDpdZipcode())
                     ->setCountryId($quote->getDpdCountry())

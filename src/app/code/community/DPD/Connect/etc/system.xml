@@ -86,7 +86,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_name>
                         <sender_street translate="label">
@@ -96,7 +96,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_street>
                         <sender_streetnumber translate="label">
@@ -106,7 +106,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_streetnumber>
                         <sender_country translate="label">
@@ -116,7 +116,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_country>
                         <sender_zipcode translate="label">
@@ -126,7 +126,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_zipcode>
                         <sender_city translate="label">
@@ -136,10 +136,9 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_city>
-
                         <sender_email translate="label">
                             <label>Sender e-mail</label>
                             <frontend_type>text</frontend_type>
@@ -147,7 +146,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_email>
                         <sender_phonenumber translate="label">
@@ -157,7 +156,7 @@
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
-                            <comment>Do NOT change unless instructed by DPD</comment>
+                            <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_phonenumber>
 
@@ -181,6 +180,16 @@
                             <comment>Required</comment>
                             <can_be_empty>0</can_be_empty>
                         </sender_eori>
+                        <customs_terms translate="label">
+                            <label>Customs terms</label>
+                            <source_model>dpd/system_config_source_customsterms</source_model>
+                            <frontend_type>select</frontend_type>
+                            <sort_order>32</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>0</show_in_store>
+                            <can_be_empty>0</can_be_empty>
+                        </customs_terms>
                     </fields>
                 </dpdclassic>
                 <dpd_product_attributes translate="label" module="dpd">
@@ -414,32 +423,6 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>0</show_in_store>
                         </condition_name>
-                        <export translate="label">
-                            <label>Export table rates file</label>
-                            <frontend_type>button</frontend_type>
-                            <frontend_model>dpd/adminhtml_system_config_form_dpdparcelshopsexport</frontend_model>
-                            <sort_order>8</sort_order>
-                            <depends>
-                                <ratetype>1</ratetype>
-                            </depends>
-                            <show_in_default>0</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                            <comment>Export your table rates configuration here</comment>
-                        </export>
-                        <import_parcelshops translate="label">
-                            <label>Import table rates file</label>
-                            <frontend_type>import</frontend_type>
-                            <sort_order>9</sort_order>
-                            <backend_model>dpd/adminhtml_system_config_backend_shipping_dpdparcelshops_tablerate</backend_model>
-                            <depends>
-                                <ratetype>1</ratetype>
-                            </depends>
-                            <show_in_default>0</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                            <comment>Upload your table rates configuration here. Refer to the manual for more information</comment>
-                        </import_parcelshops>
                         <sallowspecific translate="label">
                             <label>Ship to countries</label>
                             <frontend_type>select</frontend_type>
@@ -463,24 +446,26 @@
                             <can_be_empty>1</can_be_empty>
                             <comment>Select one or more countries where dpd should be available for</comment>
                         </specificcountry>
+                        <use_dpd_maps_key translate="label">
+                            <label>Use Google Maps Key of DPD</label>
+                            <sort_order>12</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <comment><![CDATA[These may be subject to rate limiting, high volume users should use their own Google keys]]></comment>
+                        </use_dpd_maps_key>
                         <google_maps_api translate="label">
-                            <label>Google Maps API</label>
+                            <label>Google Maps Client key</label>
                             <frontend_type>text</frontend_type>
                             <sort_order>12</sort_order>
                             <show_in_default>1</show_in_default>
                             <show_in_website>1</show_in_website>
+                            <backend_model>adminhtml/system_config_backend_encrypted</backend_model>
                             <show_in_store>1</show_in_store>
-                            <comment><![CDATA[<a href="https://developers.google.com/maps/documentation/javascript/tutorial?hl=nl#api_key" target="_blank">How to request an API key</a>]]></comment>
+                            <comment><![CDATA[This key is used when you don't want to use the Google Maps Key of DPD and is sent to your visitors browser and is used to render Google Maps in the checkout so visitors can select a parcelshop. <a href="https://developers.google.com/maps/documentation/javascript/get-api-key" target="_blank">More info</a>]]></comment>
                         </google_maps_api>
-                        <google_maps_backend_api translate="label">
-                            <label>Google Maps API (backend)</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>12</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment><![CDATA[<a href="https://developers.google.com/maps/documentation/javascript/tutorial?hl=nl#api_key" target="_blank">How to request an API key</a>]]></comment>
-                        </google_maps_backend_api>
                         <google_maps_width translate="label">
                             <label>Map width</label>
                             <frontend_type>text</frontend_type>
@@ -499,15 +484,6 @@
                             <show_in_store>1</show_in_store>
                             <comment>Height of the inline map (in px)</comment>
                         </google_maps_height>
-                        <google_maps_maxpointers translate="label">
-                            <label>Map - max num of shops</label>
-                            <frontend_type>text</frontend_type>
-                            <sort_order>15</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment>Maximum number of Parcelshops to be put on the map</comment>
-                        </google_maps_maxpointers>
                         <google_maps_display translate="label">
                             <label>Map presentation</label>
                             <frontend_type>select</frontend_type>
@@ -519,68 +495,6 @@
                             <show_in_store>1</show_in_store>
                             <comment>Show the map inline or as an overlay</comment>
                         </google_maps_display>
-                        <google_maps_enable_list translate="label">
-                            <label>Map list</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>17</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment>Show the list of ParcelShops to the right of the map</comment>
-                        </google_maps_enable_list>
-                        <custom_parcelshops_import translate="label">
-                            <label>Custom ParcelShops - CSV</label>
-                            <frontend_type>import</frontend_type>
-                            <backend_model>dpd/adminhtml_system_config_backend_shipping_specialparcelshops</backend_model>
-                            <sort_order>18</sort_order>
-                            <show_in_default>0</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                            <comment>Contact DPD to get the CSV !</comment>
-                        </custom_parcelshops_import>
-                        <check_custom_parcelshops_import translate="label">
-                            <label></label>
-                            <frontend_type>button</frontend_type>
-                            <frontend_model>dpd/adminhtml_system_config_form_availability</frontend_model>
-                            <sort_order>19</sort_order>
-                            <show_in_default>0</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                        </check_custom_parcelshops_import>
-                        <special_parcelshop_icon translate="label">
-                            <label>Custom ParcelShops - logo</label>
-                            <frontend_type>image</frontend_type>
-                            <backend_model>adminhtml/system_config_backend_image</backend_model>
-                            <upload_dir config="system/filesystem/media" scope_info="1">dpd</upload_dir>
-                            <base_url type="media" scope_info="1">dpd</base_url>
-                            <sort_order>20</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>
-                            <comment>Upload your custom map logo (100x100 px)</comment>
-                        </special_parcelshop_icon>
-                        <google_maps_icon translate="label">
-                            <label>Custom ParcelShops – map logo</label>
-                            <frontend_type>image</frontend_type>
-                            <backend_model>adminhtml/system_config_backend_image</backend_model>
-                            <upload_dir config="system/filesystem/media" scope_info="1">dpd</upload_dir>
-                            <base_url type="media" scope_info="1">dpd</base_url>
-                            <sort_order>21</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>1</show_in_store>Enabled
-                            <comment>Map pointer image. (57x57 px)</comment>
-                        </google_maps_icon>
-                        <custom_parcelshops_free_shipping translate="label">
-                            <label>Free shipping for custom parcel shops</label>
-                            <frontend_type>select</frontend_type>
-                            <source_model>adminhtml/system_config_source_yesno</source_model>
-                            <sort_order>22</sort_order>
-                            <show_in_default>1</show_in_default>
-                            <show_in_website>1</show_in_website>
-                            <show_in_store>0</show_in_store>
-                        </custom_parcelshops_free_shipping>
                     </fields>
                 </dpdparcelshops>
             </groups>
